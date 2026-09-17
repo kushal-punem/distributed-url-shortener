@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Distributed URL Shortener & Analytics Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            dark: {
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">DistriLink</span>
+          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Distributed Platform</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div id="healthBadge" class="flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>All Services Healthy</span>
+        </div>
+        <a href="https://github.com" target="_blank" class="text-slate-400 hover:text-white transition-colors text-sm font-medium">GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Top Section: URL Shortener Card -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="max-w-3xl">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Generate High-Speed Short Links</h1>
+        <p class="mt-2 text-slate-400 text-sm sm:text-base">
+          Ultra-low latency URL routing with Redis caching, PostgreSQL persistence, and asynchronous MongoDB click telemetry.
+        </p>
+      </div>
+
+      <form id="shortenForm" class="mt-6 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Destination URL</label>
+            <input 
+              type="url" 
+              id="originalUrlInput" 
+              required 
+              placeholder="https://example.com/very/long/target/url..." 
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Custom Alias (Optional)</label>
+            <input 
+              type="text" 
+              id="customCodeInput" 
+              placeholder="e.g. spring-sale" 
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <div class="text-xs text-slate-500 flex items-center space-x-2">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+            <span>Generates 7-character Base62 collision-free nano IDs</span>
+          </div>
+          <button 
+            type="submit" 
+            id="shortenBtn" 
+            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 transition-all flex items-center space-x-2 cursor-pointer"
+          >
+            <span>Shorten Link</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+
+      <!-- Shorten Result Alert -->
+      <div id="shortenResult" class="hidden mt-6 p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <span class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Short Link Created!</span>
+          <div class="flex items-center space-x-3">
+            <a id="resultLink" href="#" target="_blank" class="font-mono text-base font-bold text-white hover:text-indigo-300 underline underline-offset-4"></a>
+            <span id="createdTime" class="text-xs text-slate-400"></span>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <button id="copyBtn" class="flex-1 sm:flex-none px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors flex items-center justify-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <span id="copyText">Copy Link</span>
+          </button>
+          <button id="viewAnalyticsBtn" class="flex-1 sm:flex-none px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold rounded-lg border border-indigo-500/30 transition-colors">
+            View Analytics
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics Dashboard Explorer -->
+    <section class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Real-Time Clickstream Analytics</h2>
+          <p class="text-slate-400 text-sm">Aggregated metrics and event logging powered by MongoDB & Redis.</p>
+        </div>
+
+        <!-- Code Selector & Live Polling Controls -->
+        <div class="flex items-center space-x-3">
+          <div class="relative">
+            <input 
+              type="text" 
+              id="analyticsCodeInput" 
+              value="k8s" 
+              placeholder="Enter Short Code" 
+              class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40 sm:w-48"
+            />
+          </div>
+          <button 
+            id="loadAnalyticsBtn" 
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm rounded-xl border border-slate-700 transition-colors cursor-pointer"
+          >
+            Inspect
+          </button>
+          <button 
+            id="testClickBtn" 
+            title="Fire a test click to see live counts increment!"
+            class="px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-medium text-sm rounded-xl border border-emerald-500/30 transition-colors flex items-center space-x-1.5 cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+            </svg>
+            <span>Test Click</span>
+          </button>
+          <label class="flex items-center space-x-2 text-xs text-slate-400 cursor-pointer select-none">
+            <input type="checkbox" id="autoRefreshToggle" checked class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+            <span>Live Auto-Poll (3s)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Quick Codes Pills -->
+      <div class="flex items-center space-x-2 overflow-x-auto pb-1 text-xs">
+        <span class="text-slate-500 font-medium">Sample Codes:</span>
+        <button onclick="switchCode('k8s')" class="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-indigo-400 font-mono transition-colors">k8s</button>
+        <button onclick="switchCode('react')" class="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-indigo-400 font-mono transition-colors">react</button>
+      </div>
+
+      <!-- Metric Stats Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg relative">
+          <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Total Redirects</div>
+          <div id="statTotalClicks" class="text-3xl sm:text-4xl font-black text-white mt-2 font-mono">0</div>
+          <div class="mt-2 text-xs text-indigo-400 font-medium flex items-center space-x-1">
+            <span>High-velocity ingested events</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg relative">
+          <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Unique Visitors</div>
+          <div id="statUniqueVisitors" class="text-3xl sm:text-4xl font-black text-white mt-2 font-mono">0</div>
+          <div class="mt-2 text-xs text-emerald-400 font-medium flex items-center space-x-1">
+            <span>Distinct IP addresses</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg relative">
+          <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Top Referrer Domain</div>
+          <div id="statTopReferrer" class="text-2xl font-bold text-white mt-2 truncate font-mono">None</div>
+          <div id="statTopReferrerCount" class="mt-2 text-xs text-slate-400 font-medium">0 clicks from primary source</div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Timeline Chart (Span 2) -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-base font-semibold text-white">Click Volume Over Time</h3>
+          <p class="text-xs text-slate-400 mb-4">Historical click telemetry aggregated by date</p>
+          <div class="h-64">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Referrers Breakdown -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-base font-semibold text-white">Referrer Sources</h3>
+          <p class="text-xs text-slate-400 mb-4">Distribution by inbound traffic source</p>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="referrersChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Agents / Devices Chart & Raw Click Logs -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- User Agent Breakdown -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-base font-semibold text-white">User Agent / Client Breakdown</h3>
+          <p class="text-xs text-slate-400 mb-4">Browser & platform distribution</p>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="userAgentChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Live Click Event Stream (Span 2) -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-semibold text-white">Latest Clickstream Stream</h3>
+              <p class="text-xs text-slate-400">Raw telemetry documents captured in MongoDB</p>
+            </div>
+            <span class="text-xs font-mono text-indigo-400 px-2 py-1 bg-indigo-500/10 rounded-md border border-indigo-500/20">Last 10 Events</span>
+          </div>
+
+          <div class="flex-1 overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950/60 uppercase font-mono text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">Timestamp</th>
+                  <th class="py-2.5 px-3">Client IP</th>
+                  <th class="py-2.5 px-3">Referrer</th>
+                  <th class="py-2.5 px-3">User Agent</th>
+                </tr>
+              </thead>
+              <tbody id="rawEventsTable" class="divide-y divide-slate-800/60 font-mono">
+                <tr>
+                  <td colspan="4" class="py-6 text-center text-slate-500">No telemetry recorded yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950 py-6 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
+      Built with Node.js, Express, PostgreSQL, Redis, and MongoDB • Distributed System Architecture
+    </div>
+  </footer>
+
+  <!-- Frontend Logic -->
+  <script>
+    let timelineChartInstance = null;
+    let referrersChartInstance = null;
+    let userAgentChartInstance = null;
+    let autoRefreshInterval = null;
+
+    const shortenForm = document.getElementById('shortenForm');
+    const originalUrlInput = document.getElementById('originalUrlInput');
+    const customCodeInput = document.getElementById('customCodeInput');
+    const shortenResult = document.getElementById('shortenResult');
+    const resultLink = document.getElementById('resultLink');
+    const createdTime = document.getElementById('createdTime');
+    const copyBtn = document.getElementById('copyBtn');
+    const copyText = document.getElementById('copyText');
+    const viewAnalyticsBtn = document.getElementById('viewAnalyticsBtn');
+    const analyticsCodeInput = document.getElementById('analyticsCodeInput');
+    const loadAnalyticsBtn = document.getElementById('loadAnalyticsBtn');
+    const testClickBtn = document.getElementById('testClickBtn');
+    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+
+    // Create Short URL
+    shortenForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = originalUrlInput.value.trim();
+      const customCode = customCodeInput.value.trim();
+
+      try {
+        const res = await fetch('/api/urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, customCode: customCode || undefined }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert('Error: ' + (data.error || 'Failed to create short URL'));
+          return;
+        }
+
+        resultLink.href = data.shortUrl;
+        resultLink.textContent = data.shortUrl;
+        createdTime.textContent = new Date(data.createdAt).toLocaleTimeString();
+        shortenResult.classList.remove('hidden');
+
+        // Update analytics target to the newly created short link
+        analyticsCodeInput.value = data.shortCode;
+        fetchAnalytics(data.shortCode);
+      } catch (err) {
+        alert('Request failed: ' + err.message);
+      }
+    });
+
+    // Copy to clipboard
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(resultLink.href).then(() => {
+        copyText.textContent = 'Copied!';
+        setTimeout(() => copyText.textContent = 'Copy Link', 2000);
+      });
+    });
+
+    viewAnalyticsBtn.addEventListener('click', () => {
+      const code = analyticsCodeInput.value.trim();
+      fetchAnalytics(code);
+      document.querySelector('#statTotalClicks').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Load Analytics
+    loadAnalyticsBtn.addEventListener('click', () => {
+      fetchAnalytics(analyticsCodeInput.value.trim());
+    });
+
+    // Fire Test Click directly
+    testClickBtn.addEventListener('click', async () => {
+      const code = analyticsCodeInput.value.trim();
+      if (!code) return;
+      
+      const testReferrers = ['https://news.ycombinator.com', 'https://twitter.com', 'https://reddit.com', 'direct'];
+      const testAgents = ['Chrome / macOS', 'Safari / iPhone', 'Firefox / Linux', 'Edge / Windows'];
+      const ref = testReferrers[Math.floor(Math.random() * testReferrers.length)];
+      const ua = testAgents[Math.floor(Math.random() * testAgents.length)];
+
+      try {
+        await fetch(`/${code}`, {
+          method: 'GET',
+          headers: {
+            'User-Agent': ua,
+            'Referer': ref,
+          }
+        });
+        setTimeout(() => fetchAnalytics(code), 300);
+      } catch (e) {
+        // Redirection might be caught by browser, which is fine
+        setTimeout(() => fetchAnalytics(code), 500);
+      }
+    });
+
+    function switchCode(code) {
+      analyticsCodeInput.value = code;
+      fetchAnalytics(code);
+    }
+
+    async function fetchAnalytics(code) {
+      if (!code) return;
+
+      try {
+        const res = await fetch(`/api/analytics/${code}`);
+        if (!res.ok) {
+          console.warn('Analytics endpoint returned non-200');
+          return;
+        }
+        const data = await res.json();
+        renderAnalytics(data);
+      } catch (err) {
+        console.error('Error fetching analytics:', err);
+      }
+    }
+
+    function renderAnalytics(data) {
+      // 1. Stats
+      document.getElementById('statTotalClicks').textContent = data.totalClicks.toLocaleString();
+      document.getElementById('statUniqueVisitors').textContent = data.uniqueVisitors.toLocaleString();
+
+      if (data.topReferrers && data.topReferrers.length > 0) {
+        document.getElementById('statTopReferrer').textContent = data.topReferrers[0].referrer;
+        document.getElementById('statTopReferrerCount').textContent = `${data.topReferrers[0].count} clicks`;
+      } else {
+        document.getElementById('statTopReferrer').textContent = 'None';
+        document.getElementById('statTopReferrerCount').textContent = '0 clicks';
+      }
+
+      // 2. Timeline Chart
+      const timelineLabels = data.clicksByDate.map(d => d.date);
+      const timelineCounts = data.clicksByDate.map(d => d.count);
+      
+      if (timelineChartInstance) timelineChartInstance.destroy();
+      const ctxTimeline = document.getElementById('timelineChart').getContext('2d');
+      timelineChartInstance = new Chart(ctxTimeline, {
+        type: 'line',
+        data: {
+          labels: timelineLabels.length > 0 ? timelineLabels : ['Today'],
+          datasets: [{
+            label: 'Clicks',
+            data: timelineCounts.length > 0 ? timelineCounts : [data.totalClicks],
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.15)',
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#818cf8',
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } } },
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', precision: 0, font: { family: 'JetBrains Mono' } } },
+          }
+        }
+      });
+
+      // 3. Referrers Doughnut Chart
+      const refLabels = data.topReferrers.map(r => r.referrer);
+      const refCounts = data.topReferrers.map(r => r.count);
+
+      if (referrersChartInstance) referrersChartInstance.destroy();
+      const ctxRef = document.getElementById('referrersChart').getContext('2d');
+      referrersChartInstance = new Chart(ctxRef, {
+        type: 'doughnut',
+        data: {
+          labels: refLabels.length > 0 ? refLabels : ['No Data'],
+          datasets: [{
+            data: refCounts.length > 0 ? refCounts : [1],
+            backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+
+      // 4. User Agent Breakdown Chart
+      const uaLabels = data.topUserAgents.map(u => u.userAgent.length > 25 ? u.userAgent.substring(0, 22) + '...' : u.userAgent);
+      const uaCounts = data.topUserAgents.map(u => u.count);
+
+      if (userAgentChartInstance) userAgentChartInstance.destroy();
+      const ctxUa = document.getElementById('userAgentChart').getContext('2d');
+      userAgentChartInstance = new Chart(ctxUa, {
+        type: 'doughnut',
+        data: {
+          labels: uaLabels.length > 0 ? uaLabels : ['No Data'],
+          datasets: [{
+            data: uaCounts.length > 0 ? uaCounts : [1],
+            backgroundColor: ['#38bdf8', '#a855f7', '#fb923c', '#4ade80', '#f43f5e', '#64748b'],
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+
+      // 5. Recent Clicks Table
+      const tableBody = document.getElementById('rawEventsTable');
+      if (!data.recentClicks || data.recentClicks.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-slate-500">No telemetry recorded yet.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = data.recentClicks.map(click => `
+        <tr class="hover:bg-slate-800/40 transition-colors">
+          <td class="py-2.5 px-3 text-slate-400">${new Date(click.timestamp).toLocaleTimeString()}</td>
+          <td class="py-2.5 px-3 text-indigo-300">${click.ip}</td>
+          <td class="py-2.5 px-3 text-slate-300 truncate max-w-[140px]">${click.referer}</td>
+          <td class="py-2.5 px-3 text-slate-400 truncate max-w-[200px]">${click.userAgent}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Auto-refresh configuration
+    function setupAutoRefresh() {
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+      if (autoRefreshToggle.checked) {
+        autoRefreshInterval = setInterval(() => {
+          fetchAnalytics(analyticsCodeInput.value.trim());
+        }, 3000);
+      }
+    }
+
+    autoRefreshToggle.addEventListener('change', setupAutoRefresh);
+
+    // Initial load
+    fetchAnalytics('k8s');
+    setupAutoRefresh();
+  </script>
+</body>
+</html>

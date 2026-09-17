@@ -1,0 +1,13 @@
+{
+  "name": "distributed-url-shortener-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Distributed URL Shortener & Analytics Platform",
+  "scripts": {
+    "test": "npm run test --prefix redirection-api && npm run test --prefix analytics-api",
+    "build": "npm run build --prefix redirection-api && npm run build --prefix analytics-api",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  }
+}
