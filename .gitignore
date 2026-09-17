@@ -3,7 +3,12 @@ dist/
 .env
 data/
 *.log
+token.txt
+*.token
+*.key
+*.pem
 ./agents
 
 # Antigravity MCP configuration
 .agents/mcp_config.json
+*.example

@@ -1,5 +1,14 @@
 # Distributed URL Shortener & Analytics Platform
 
+[![CI](https://github.com/kushal-punem/distributed-url-shortener/actions/workflows/ci.yml/badge.svg)](https://github.com/kushal-punem/distributed-url-shortener/actions/workflows/ci.yml)
+![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?logo=typescript&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?logo=redis&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/postgresql-%23316192.svg?logo=postgresql&logoColor=white)
+![MongoDB](https://img.shields.io/badge/mongodb-%2347A248.svg?logo=mongodb&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 A high-performance, distributed microservices platform engineered for sub-millisecond URL redirection, durable clickstream telemetry, and real-time interactive analytics.
 
 ---
@@ -61,6 +70,45 @@ A high-performance, distributed microservices platform engineered for sub-millis
 
 ---
 
+## Project Structure
+
+```
+distributed-url-shortener/
+├── docker-compose.yml              # Multi-container orchestration (Postgres, Mongo, Redis, APIs)
+├── .env.example                    # Consolidated environment variables template
+├── package.json                    # Monorepo scripts (test, build, docker commands)
+├── README.md                       # Complete documentation & API specifications
+├── .github/workflows/ci.yml        # GitHub Actions CI/CD test and build pipeline
+│
+├── redirection-api/                # Port 3000 (TypeScript + Express + pg + redis)
+│   ├── Dockerfile                  # Multi-stage production container
+│   ├── public/index.html           # Interactive real-time analytics web dashboard
+│   ├── src/
+│   │   ├── cache/redis.ts          # Cache-aside lookup, negative cache & Redis Streams append
+│   │   ├── db/postgres.ts          # PostgreSQL pool & automated unique indexing
+│   │   ├── services/url.service.ts # Base62 nano-ID generator & resolution logic
+│   │   ├── services/event.publisher.ts # Non-blocking stream dispatcher with HTTP fallback
+│   │   ├── middlewares/rate.limiter.ts # Distributed Redis atomic rate limiter (60 req/min)
+│   │   ├── middlewares/safety.middleware.ts # SSRF & private IP loopback protection
+│   │   ├── controllers/url.controller.ts
+│   │   ├── routes/index.ts         # Routes & unified Analytics API proxy
+│   │   └── app.ts / index.ts
+│   └── tests/url.test.ts           # Vitest unit & integration tests (9 tests)
+│
+└── analytics-api/                  # Port 3001 (TypeScript + Express + mongodb + redis)
+    ├── Dockerfile                  # Multi-stage production container
+    ├── src/
+    │   ├── db/mongo.ts             # MongoDB client & compound indexing
+    │   ├── services/event.consumer.ts # Persistent Redis Streams consumer group worker
+    │   ├── services/analytics.service.ts # High-velocity ingestion & aggregation pipelines
+    │   ├── controllers/analytics.controller.ts
+    │   ├── routes/index.ts
+    │   └── app.ts / index.ts
+    └── tests/analytics.test.ts     # Vitest unit & integration tests (6 tests)
+```
+
+---
+
 ## Core Features
 
 ### 1. Interactive Analytics & Management Dashboard
@@ -112,7 +160,7 @@ A high-performance, distributed microservices platform engineered for sub-millis
 
 ### 1. Clone and Configure
 ```bash
-git clone <repository_url>
+git clone https://github.com/kushal-punem/distributed-url-shortener.git
 cd distributed-url-shortener
 cp .env.example .env
 ```
